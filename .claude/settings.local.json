@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(mv BottomNav.jsx BottomNavTMP.jsx)",
+      "Bash(mv BottomNavTMP.jsx BottomNav.jsx)"
+    ]
+  }
+}

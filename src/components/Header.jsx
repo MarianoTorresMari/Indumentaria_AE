@@ -1,8 +1,9 @@
+import { Shirt } from 'lucide-react'
+
 /*
   HEADER
   ------
   Simple: solo el nombre de la tienda.
-  En mobile se achica. No tiene menú (la navegación está abajo).
 */
 
 export default function Header() {
@@ -24,11 +25,7 @@ export default function Header() {
         justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Icono de la tienda */}
-          <span style={{
-            fontSize: '24px',
-            lineHeight: 1,
-          }}>👕</span>
+          <Shirt size={24} color="var(--primary)" />
           <div>
             <h1 style={{
               fontSize: '18px',
