@@ -42,9 +42,10 @@ import {
   where,
   limit,
 } from 'firebase/firestore'
-import { db } from './firebase'
+import { db } from '../firebase'
 
 const productosRef = collection(db, 'productos')
+const ventasRef = collection(db, 'ventas')
 
 // ============================================
 // OBTENER TODOS LOS PRODUCTOS
@@ -130,7 +131,6 @@ export async function agregarProducto(datos) {
     const producto = {
       nombre: datos.nombre.trim(),
       codigo: datos.codigo.trim(),
-      imagen: datos.imagen?.trim() || '',
       categoria: datos.categoria?.trim() || 'General',
       precio: Number(datos.precio),
       talles: datos.talles || {},
@@ -169,7 +169,6 @@ export async function editarProducto(id, datos) {
     const datosActualizar = {}
     if (datos.nombre !== undefined) datosActualizar.nombre = datos.nombre.trim()
     if (datos.codigo !== undefined) datosActualizar.codigo = datos.codigo.trim()
-    if (datos.imagen !== undefined) datosActualizar.imagen = datos.imagen.trim()
     if (datos.categoria !== undefined) datosActualizar.categoria = datos.categoria.trim()
     if (datos.precio !== undefined) datosActualizar.precio = Number(datos.precio)
     if (datos.talles !== undefined) datosActualizar.talles = datos.talles
@@ -230,12 +229,43 @@ export async function registrarVenta(id, talle, cantidad) {
       actualizadoEn: new Date().toISOString(),
     })
 
+    const stockRestante = nuevasTalles[talle]
+
+    // Guardar la venta en el historial
+    await addDoc(ventasRef, {
+      productoId: id,
+      productoNombre: producto.nombre,
+      productoCodigo: producto.codigo,
+      productoCategoria: producto.categoria || 'General',
+      talle,
+      cantidad,
+      precioUnitario: producto.precio,
+      totalVenta: producto.precio * cantidad,
+      stockRestante,
+      fecha: new Date().toISOString(),
+    })
+
     return {
-      mensaje: `✅ Venta: ${cantidad}x ${producto.nombre} (Talle ${talle})`,
-      stockRestante: nuevasTalles[talle],
+      mensaje: `Venta: ${cantidad}x ${producto.nombre} (Talle ${talle})`,
+      stockRestante,
     }
   } catch (error) {
     console.error('Error al registrar venta:', error)
+    throw error
+  }
+}
+
+// ============================================
+// OBTENER HISTORIAL DE VENTAS
+// ============================================
+export async function obtenerVentas() {
+  try {
+    const snapshot = await getDocs(ventasRef)
+    const ventas = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    ventas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+    return ventas
+  } catch (error) {
+    console.error('Error al obtener ventas:', error)
     throw error
   }
 }
@@ -252,7 +282,6 @@ export async function cargarDatosEjemplo() {
     {
       nombre: 'Remera Deportiva Nike Dry-Fit',
       codigo: '7891234560001',
-      imagen: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop',
       categoria: 'Remeras',
       precio: 25000,
       talles: { S: 5, M: 8, L: 12, XL: 3, XXL: 0 },
@@ -260,7 +289,6 @@ export async function cargarDatosEjemplo() {
     {
       nombre: 'Pantalón Jogger Adidas',
       codigo: '7891234560002',
-      imagen: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=300&h=300&fit=crop',
       categoria: 'Pantalones',
       precio: 45000,
       talles: { S: 2, M: 6, L: 4, XL: 7, XXL: 1 },
@@ -268,7 +296,6 @@ export async function cargarDatosEjemplo() {
     {
       nombre: 'Campera Rompevientos Puma',
       codigo: '7891234560003',
-      imagen: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=300&h=300&fit=crop',
       categoria: 'Camperas',
       precio: 68000,
       talles: { S: 0, M: 3, L: 5, XL: 2, XXL: 0 },
@@ -276,7 +303,6 @@ export async function cargarDatosEjemplo() {
     {
       nombre: 'Short Running Under Armour',
       codigo: '7891234560004',
-      imagen: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=300&h=300&fit=crop',
       categoria: 'Shorts',
       precio: 22000,
       talles: { S: 10, M: 15, L: 8, XL: 4, XXL: 2 },
@@ -284,7 +310,6 @@ export async function cargarDatosEjemplo() {
     {
       nombre: 'Musculosa Entrenamiento Reebok',
       codigo: '7891234560005',
-      imagen: 'https://images.unsplash.com/photo-1503341504253-dff4f7c3f5df?w=300&h=300&fit=crop',
       categoria: 'Remeras',
       precio: 18000,
       talles: { S: 7, M: 0, L: 3, XL: 0, XXL: 0 },
@@ -292,7 +317,6 @@ export async function cargarDatosEjemplo() {
     {
       nombre: 'Calza Larga Deportiva Topper',
       codigo: '7891234560006',
-      imagen: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=300&h=300&fit=crop',
       categoria: 'Calzas',
       precio: 32000,
       talles: { S: 4, M: 6, L: 9, XL: 5, XXL: 3 },
